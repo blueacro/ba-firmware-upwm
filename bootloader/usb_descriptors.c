@@ -44,7 +44,7 @@ usb_device_descriptor_t usb_device_descriptor __attribute__ ((aligned (4))) = /*
 
   .bMaxPacketSize0        = 64,
   .idVendor               = 0x726c,
-  .idProduct              = 0x3101,
+  .idProduct              = 0x3103,
   .bcdDevice              = 0x0107,
 
   .iManufacturer          = USB_STR_ZERO,

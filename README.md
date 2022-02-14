@@ -1,12 +1,11 @@
-# Reef Volt DualDoser Firmware
+# Reef Volt uPWM
 
-This is the firmware for the ReefVolt DualDoser, as sold by
+This is the firmware for the ReefVolt uPWM (MicroPWM), as sold by
 [blueAcro.com](https://blueacro.com), and part of the [Reef2Reef Reef-Pi
 Community](https://www.reef2reef.com/forums/reef-pi-discussion.1296/). It
-features two peristaltic dosing pumps which are controllable via a simple USB
-endpoint, and two float switch inputs.
+features four 3.3V PWM outputs, driven off USB, in a small formfactor
 
-[![C/C++ CI](https://github.com/blueacro/ba-firmware-dualdoser/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/blueacro/ba-firmware-dualdoser/actions/workflows/c-cpp.yml)
+[![C/C++ CI](https://github.com/blueacro/ba-firmware-upwm/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/blueacro/ba-firmware-upwm/actions/workflows/c-cpp.yml)
 
 # Building and Contributing
 
@@ -30,9 +29,9 @@ In order to build, the following is required:
 ## Flash device
 
 Device can be flashed when in DFU mode. This is done by holding down the button
-while attaching the USB cable. A red LED will be on when in DFU mode.
+while attaching the USB cable.
 
-    dfu-util -D build/dualdoser.dfu
+    dfu-util -D build/upwm.dfu
 
 A small python script is provided to enter DFU mode when running the
 application. It requires Python 3.x and a copy of PyUSB to be installed.
@@ -45,7 +44,7 @@ application. It requires Python 3.x and a copy of PyUSB to be installed.
 
 # Communications and USB
 
-The DualDoser firmware uses two Vendor mode endpoints (IN and OUT) which can
+The uPWM firmware uses two Vendor mode endpoints (IN and OUT) which can
 transfer a packet of up to 64 bytes at a time. The OUT endpoint receives
 messages from the computer, and the IN is used to respond to status.
 
@@ -55,29 +54,18 @@ in `app/commands.h`.
 Currently, all bootloader commands are followed by a single `response` frame
 which identifies current pump, float switch, and power input states.
 
-# Failsafes
-
-The dual doser is designed to only operate its pumps when actively being told by
-the host system. If a pump on command is received, the DualDoser will only keep
-the pump selected on for 5 seconds before turning it off. No one wants a flooded
-floor or a cooked aquarium.
-
 ## Pinout
 
 | Pin  | Function |
 |------|----------|
-| PA02 | 12V detect |
-| PA04 | Analog level |
-| PA06 | Driver 2 |
-| PA07 | Driver 1 |
-| PA08 | Float 1 |
-| PA09 | Float 2 |
+| PA04 | PWM WO0 |
+| PA05 | PWM WO1 |
+| PA06 | PWM WO2 |
+| PA07 | PWM WO3 |
+| PA08 | LED status |
 | PA14 | SDA |
 | PA15 | SCL |
 | PA16 | Button |
-| PA17 | Red LED |
-| PA22 | Green LED |
-| PA23 | Blue LED |
 | PA24 | USBD- |
 | PA25 | USBD+ |
 

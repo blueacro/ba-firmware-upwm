@@ -35,7 +35,7 @@
 #include <string.h>
 
 #define USB_VENDOR_ID  0x726c
-#define USB_PRODUCT_ID 0x3101
+#define USB_PRODUCT_ID 0x3103
 
 static const uint32_t origin_addr = 0x400; /* origin of the application (first address available after the bootloader) */
 static const uint32_t app_len_offset = 0x10; /* reserved application vector where the application size is stored */

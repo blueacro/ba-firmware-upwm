@@ -22,4 +22,4 @@ bundle: app tool bootloader
 	cp app/build/*.hex build
 	cp bootloader/make/build/*.elf build
 	cp bootloader/make/build/*.hex build
-	bootloader/dx1elf2dfu/dx1elf2dfu build/dualdoser.elf build/dualdoser.dfu
+	bootloader/dx1elf2dfu/dx1elf2dfu build/upwm.elf build/upwm.dfu
