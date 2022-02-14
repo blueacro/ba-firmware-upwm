@@ -237,10 +237,9 @@ static volatile uint32_t __attribute__((section(".vectors_ram"))) double_tap;
 void bootloader(void)
 {
 #ifndef USE_DBL_TAP
-  /* configure PA16 (bootloader entry pin used by SAM-BA) as input pull-up, PA8 as LED */
+  /* configure PA16 (bootloader entry pin used by SAM-BA) as input pull-up */
   PORT->Group[0].PINCFG[16].reg = PORT_PINCFG_PULLEN | PORT_PINCFG_INEN;
-  PORT->Group[0].DIRSET.reg = (1UL << 8);
-  PORT->Group[0].OUTSET.reg = (1UL << 16) | (1 << 8);
+  PORT->Group[0].OUTSET.reg = (1UL << 16);
 #endif
 
   PAC1->WPCLR.reg = 2; /* clear DSU */
