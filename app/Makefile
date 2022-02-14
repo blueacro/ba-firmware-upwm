@@ -1,7 +1,7 @@
 ##############################################################################
 BUILD = build
-BIN = dualdoser
-BIN_NOBL = dualdoser_nobl
+BIN = upwm
+BIN_NOBL = upwm_nobl
 
 ##############################################################################
 .PHONY: all directory clean size

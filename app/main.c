@@ -47,19 +47,9 @@ static volatile uint32_t __attribute__((section(".vectors_ram"))) double_tap;
 /*- Definitions -------------------------------------------------------------*/
 #define USB_BUFFER_SIZE 64
 
-HAL_GPIO_PIN(RED, A, 17);
-HAL_GPIO_PIN(GREEN, A, 22);
-HAL_GPIO_PIN(BLUE, A, 23);
-
-HAL_GPIO_PIN(PUMP1, A, 7);
-HAL_GPIO_PIN(PUMP2, A, 6);
-
-HAL_GPIO_PIN(FLOAT1, A, 8);
-HAL_GPIO_PIN(FLOAT2, A, 9);
+HAL_GPIO_PIN(LED, A, 8);
 
 HAL_GPIO_PIN(BUTTON, A, 16);
-
-HAL_GPIO_PIN(PWRIN, A, 2);
 
 HAL_GPIO_PIN(USB_DM, A, 24);
 HAL_GPIO_PIN(USB_DP, A, 25);
@@ -71,19 +61,6 @@ static bool ignore_wdt_reset = false;
 static uint64_t led_flicker_usb = 0;
 // Flag if the USB is mounted on the host
 static bool usb_mounted = false;
-// Flag that green LED control is set for button control
-static bool led_green_button_control = false;
-
-typedef struct
-{
-  // Timestamp of the pump turnoff point
-  uint64_t pump_run_till;
-  // Speed of the pump set
-  uint8_t pump_speed;
-} pump_status_t;
-
-// Pump status register
-static pump_status_t pumps[2];
 
 uint8_t usb_serial_number[12];
 
@@ -196,141 +173,32 @@ static void sys_time_task(void)
 //-----------------------------------------------------------------------------
 static void status_task(void)
 {
-  int pwr = HAL_GPIO_PWRIN_read();
-  if (!pwr)
-  {
-    HAL_GPIO_RED_set();
-  }
-  else
-  {
-    HAL_GPIO_RED_clr();
-  }
   if (usb_mounted)
   {
-    if (!led_green_button_control)
-    {
-      HAL_GPIO_GREEN_clr();
-    }
     if (led_flicker_usb < app_system_time)
     {
-      HAL_GPIO_BLUE_set();
+      HAL_GPIO_LED_set();
     }
     else
     {
-      HAL_GPIO_BLUE_clr();
+      HAL_GPIO_LED_clr();
     }
   }
   else
   {
-    if (!led_green_button_control)
-      HAL_GPIO_GREEN_set();
+    HAL_GPIO_LED_clr();
   }
 }
 
 static void gpio_init(void)
 {
-  HAL_GPIO_BLUE_out();
-  HAL_GPIO_RED_out();
-  HAL_GPIO_GREEN_out();
+  HAL_GPIO_LED_out();
 
   HAL_GPIO_BUTTON_in();
   HAL_GPIO_BUTTON_pullup();
-  HAL_GPIO_FLOAT1_in();
-  HAL_GPIO_FLOAT1_pullup();
-  HAL_GPIO_FLOAT2_in();
-  HAL_GPIO_FLOAT2_pullup();
 
-  HAL_GPIO_PUMP1_out();
-  HAL_GPIO_PUMP2_out();
-
-  HAL_GPIO_PWRIN_in();
 }
 
-// Helper function to set the GPIO decoded
-static void _pump_pin_set(uint8_t pump, uint8_t set)
-{
-  switch (pump)
-  {
-  case 0:
-    if (set)
-      HAL_GPIO_PUMP1_set();
-    else
-      HAL_GPIO_PUMP1_clr();
-    break;
-  case 1:
-    if (set)
-      HAL_GPIO_PUMP2_set();
-    else
-      HAL_GPIO_PUMP2_clr();
-  default:
-    break;
-  }
-}
-
-static void pump_task(void)
-{
-  for (int i = 0; i < 2; i++)
-  {
-    // If there is no new command, turn off the pump
-    if (pumps[i].pump_run_till < app_system_time)
-    {
-      pumps[i].pump_speed = 0;
-    }
-    _pump_pin_set(i, pumps[i].pump_speed);
-  }
-}
-
-static void pump_turnon_for(int pump, uint8_t speed, uint64_t millis)
-{
-  pumps[pump].pump_speed = speed;
-  pumps[pump].pump_run_till = app_system_time + millis;
-}
-
-static void button_task(void)
-{
-  static int button_state = 0;
-  static int last_button_state = 0;
-  static uint64_t last_button_time = 0;
-  static int button_counts = 0;
-
-  // Debounce everything
-  if (last_button_time + 100 > app_system_time)
-  {
-    return;
-  }
-  last_button_time = app_system_time;
-  last_button_state = button_state;
-  button_state = !HAL_GPIO_BUTTON_read();
-
-  if (last_button_state == button_state)
-  {
-    button_counts += 1;
-    if (button_state)
-      led_green_button_control = true;
-    else
-      led_green_button_control = false;
-    if (button_state && button_counts > 10)
-      HAL_GPIO_GREEN_set();
-
-    if (button_state && button_counts > 20)
-      HAL_GPIO_GREEN_clr();
-  }
-  else
-  {
-    // Button state change, do a thing
-    if (last_button_state && button_counts > 20)
-    {
-      pump_turnon_for(0, 1, 5000);
-    }
-    else if (last_button_state && button_counts > 10)
-    {
-      pump_turnon_for(1, 1, 5000);
-    }
-    led_green_button_control = false;
-    HAL_GPIO_GREEN_clr();
-    button_counts = 0;
-  }
-}
 
 void usb_init(void)
 {
@@ -353,21 +221,13 @@ void usb_init(void)
 
 void send_response(void)
 {
-  int floats = 0;
-  if (HAL_GPIO_FLOAT1_read())
-  {
-    floats = 1;
-  }
-  if (HAL_GPIO_FLOAT2_read())
-  {
-    floats |= (1 << 1);
-  }
+  
   response_t response = {
       .header = {.response_byte = RESPONSE_STATUS},
-      .power_status = !HAL_GPIO_PWRIN_read(),
-      .pump1_status = pumps[0].pump_speed,
-      .pump2_status = pumps[1].pump_speed,
-      .float_status = floats,
+      .power_status = 0,
+      .pump1_status = 0,
+      .pump2_status = 0,
+      .float_status = 0,
       .analog_float_status = 0};
   // echo to web serial
   if (tud_vendor_mounted())
@@ -391,8 +251,6 @@ void command_processor_task(void)
     case COMMAND_SET_OUTPUTS:
     {
       const command_set_outputs_t *command = (const command_set_outputs_t *)&buf;
-      pump_turnon_for(0, command->pump1, 5000);
-      pump_turnon_for(1, command->pump2, 5000);
     }
     break;
     case COMMAND_READ:
@@ -400,8 +258,7 @@ void command_processor_task(void)
     case COMMAND_BOOTLOADER_ENTRY:
       double_tap = DBL_TAP_MAGIC;
       // Disable pumps
-      pump_turnon_for(0, 0, 5000);
-      pump_turnon_for(1, 0, 5000);
+
       // Schedule the watchdog to jettison us off a cliff
       wdt_task();              // First do a reset
       ignore_wdt_reset = true; // Then ignore the resets
@@ -426,10 +283,8 @@ int main(void)
   {
     sys_time_task();
     status_task();
-    button_task();
     tud_task(); // device task
     command_processor_task();
-    pump_task();
     wdt_task();
   }
 

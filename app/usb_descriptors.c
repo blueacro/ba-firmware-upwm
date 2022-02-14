@@ -53,7 +53,7 @@ tusb_desc_device_t const desc_device =
         .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
 
         .idVendor = 0x726c,
-        .idProduct = 0x3101,
+        .idProduct = 0x3103,
         .bcdDevice = BCD_DEVICE,
 
         .iManufacturer = 0x01,
@@ -109,7 +109,7 @@ char const *string_desc_arr[] =
     {
         (const char[]){0x09, 0x04}, // 0: is supported language is English (0x0409)
         "StackFoundry LLC",         // 1: Manufacturer
-        "ReefVolt DualDoser",       // 2: Product
+        "ReefVolt uPWM",       // 2: Product
         "123456",                   // 3: Serials, should use chip ID
         "VendorIF"                  // 4: Vendor Interface
 };
