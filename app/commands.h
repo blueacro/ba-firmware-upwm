@@ -25,8 +25,11 @@ typedef struct PACK
 typedef struct PACK
 {
     command_header_t header;
-    uint8_t pump1;
-    uint8_t pump2;
+    uint32_t period;
+    uint32_t out1;
+    uint32_t out2;
+    uint32_t out3;
+    uint32_t out4;
 } command_set_outputs_t;
 
 ////////////////////////////////
@@ -45,11 +48,11 @@ typedef struct PACK
 typedef struct PACK
 {
     response_header_t header;
-    uint8_t pump1_status;
-    uint8_t pump2_status;
-    uint8_t float_status;
-    uint8_t analog_float_status;
-    uint8_t power_status;
+    uint32_t period;
+    uint32_t out1;
+    uint32_t out2;
+    uint32_t out3;
+    uint32_t out4;
 } response_t;
 
 #endif
