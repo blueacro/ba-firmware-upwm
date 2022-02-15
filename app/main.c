@@ -54,6 +54,11 @@ HAL_GPIO_PIN(BUTTON, A, 16);
 HAL_GPIO_PIN(USB_DM, A, 24);
 HAL_GPIO_PIN(USB_DP, A, 25);
 
+HAL_GPIO_PIN(WO0, A, 4);
+HAL_GPIO_PIN(WO1, A, 5);
+HAL_GPIO_PIN(WO2, A, 6);
+HAL_GPIO_PIN(WO3, A, 7);
+
 // 1ms system core clock since start
 static uint64_t app_system_time = 0;
 static bool ignore_wdt_reset = false;
@@ -196,9 +201,39 @@ static void gpio_init(void)
 
   HAL_GPIO_BUTTON_in();
   HAL_GPIO_BUTTON_pullup();
-
 }
 
+void pwm_init(void)
+{
+  HAL_GPIO_WO0_out();
+  HAL_GPIO_WO1_out();
+  HAL_GPIO_WO2_out();
+  HAL_GPIO_WO3_out();
+  HAL_GPIO_WO0_pmuxen(PORT_PMUX_PMUXE_F_Val);
+  HAL_GPIO_WO1_pmuxen(PORT_PMUX_PMUXE_F_Val);
+  HAL_GPIO_WO2_pmuxen(PORT_PMUX_PMUXE_F_Val);
+  HAL_GPIO_WO3_pmuxen(PORT_PMUX_PMUXE_F_Val);
+
+  GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_SRC(GCLK_SOURCE_DFLL48M) |
+                      GCLK_GENCTRL_RUNSTDBY | GCLK_GENCTRL_GENEN;
+  while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY)
+    ;
+  GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_ID(TCC0_GCLK_ID) | GCLK_CLKCTRL_GEN(2);
+  while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY)
+    ;
+  PM->APBCMASK.bit.TCC0_ = 1;
+  TCC0->CTRLA.bit.SWRST = 1;
+  while (TCC0->SYNCBUSY.bit.SWRST)
+    ;
+
+  TCC0->WAVE.bit.WAVEGEN = 0x2; // Normal PWM
+  TCC0->PER.bit.PER = 0xFFF;
+  TCC0->CC[0].bit.CC = 0x80;
+  TCC0->CC[1].bit.CC = 0x80;
+  TCC0->CC[2].bit.CC = 0x80;
+  TCC0->CC[3].bit.CC = 0x80;
+  TCC0->CTRLA.bit.ENABLE = 1;
+}
 
 void usb_init(void)
 {
@@ -221,15 +256,15 @@ void usb_init(void)
 
 void send_response(void)
 {
-  
+
   response_t response = {
       .header = {.response_byte = RESPONSE_STATUS},
-      .power_status = 0,
-      .pump1_status = 0,
-      .pump2_status = 0,
-      .float_status = 0,
-      .analog_float_status = 0};
-  // echo to web serial
+      .period = TCC0->PER.reg,
+      .out1 = TCC0->CC[0].reg,
+      .out2 = TCC0->CC[1].reg,
+      .out3 = TCC0->CC[2].reg,
+      .out4 = TCC0->CC[3].reg,
+  };
   if (tud_vendor_mounted())
   {
     tud_vendor_write((const void *)&response, sizeof(response));
@@ -251,6 +286,11 @@ void command_processor_task(void)
     case COMMAND_SET_OUTPUTS:
     {
       const command_set_outputs_t *command = (const command_set_outputs_t *)&buf;
+      TCC0->PER.bit.PER = command->period;
+      TCC0->CC[0].bit.CC = command->out1;
+      TCC0->CC[1].bit.CC = command->out2;
+      TCC0->CC[2].bit.CC = command->out3;
+      TCC0->CC[3].bit.CC = command->out4;
     }
     break;
     case COMMAND_READ:
@@ -278,6 +318,7 @@ int main(void)
   gpio_init();
   usb_init();
   tusb_init();
+  pwm_init();
 
   while (1)
   {

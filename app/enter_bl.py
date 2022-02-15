@@ -3,7 +3,7 @@ import usb.util
 import time
 
 # find our device
-dev = usb.core.find(idVendor=0x726c, idProduct=0x3101)
+dev = usb.core.find(idVendor=0x726c, idProduct=0x3103)
 
 # was it found?
 if dev is None:
